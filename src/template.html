@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Sign PDF files privately in your browser. Works offline. Nothing is uploaded.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob: 'self'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src data: blob:; form-action 'none'; base-uri 'none'">
+<title>Private PDF Signer — sign PDFs offline</title>
+<!--
+  Private PDF Signer — a single-file, offline PDF signing tool.
+  Everything runs inside the browser: the PDF is never uploaded anywhere.
+  The Content-Security-Policy above blocks all network requests, so the page cannot send data out.
+
+  Bundled third-party software (licenses retained):
+   - PDF.js @PDFJS_VERSION@ (Apache-2.0) © Mozilla Foundation — https://github.com/mozilla/pdf.js
+   - pdf-lib @PDFLIB_VERSION@ (MIT) © Andrew Dillon — https://github.com/Hopding/pdf-lib
+   - Dancing Script, Great Vibes, Caveat, Sacramento (SIL Open Font License 1.1) via Fontsource
+   - PDF.js standard fonts (Foxit/Liberation licenses), CMaps (Adobe, BSD-3-Clause), OpenJPEG/JBIG2/QCMS decoders (see PDF.js)
+-->
+<style>
+/*@FONTS@*/
+/*@STYLE@*/
+</style>
+</head>
+<body>
+<div id="app" class="app" data-view="landing">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-1 4.5-6 6.5-6S11 16 13 16s2.5-3 4-3 2 2 4 2"/><path d="M3 21h18"/></svg></span>
+      <span class="brand-name">Private PDF Signer</span>
+    </div>
+    <div class="doc-name editor-only" id="docName"></div>
+    <div class="grow"></div>
+    <span class="offline-badge" title="Your PDF is processed entirely inside this browser. Nothing is uploaded and no network access is used.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span class="short">Offline</span><span class="long">&nbsp;· files never leave this device</span>
+    </span>
+    <div class="hdr-actions editor-only">
+      <button class="icon-btn" id="undoBtn" type="button" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="icon-btn" id="redoBtn" type="button" title="Redo (Ctrl+Y)" aria-label="Redo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+      <span class="hdr-sep"></span>
+      <button class="btn ghost" id="openBtn" type="button" title="Open another PDF (Ctrl+O)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-8l-2-3H4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1Z"/></svg><span class="lbl">Open</span></button>
+      <button class="btn primary" id="downloadBtn" type="button" title="Download the signed PDF (Ctrl+S)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg><span class="lbl">Download<span class="lbl-long"> signed PDF</span></span></button>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="landing" id="landing">
+      <div class="landing-card">
+        <h1>Sign PDFs privately</h1>
+        <p class="lead">Add your signature, name or date to any PDF, right here in your browser. Your document never leaves this device and the tool works fully offline.</p>
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose a PDF file">
+          <span class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg></span>
+          <strong>Drop your PDF here</strong>
+          <span class="or">or</span>
+          <span class="btn primary lg">Choose PDF</span>
+          <small>Processed locally on this device · nothing is uploaded</small>
+        </div>
+        <ul class="steps">
+          <li><b>1</b>Open a PDF</li>
+          <li><b>2</b>Draw, type or upload a signature</li>
+          <li><b>3</b>Place it &amp; download</li>
+        </ul>
+        <div class="trust"><span>✓ No upload</span><span>✓ No account</span><span>✓ Works offline</span></div>
+      </div>
+    </section>
+
+    <aside class="panel" id="panel" aria-label="Signing tools">
+      <section>
+        <h3>Your signatures</h3>
+        <div class="sig-list" id="sigList"></div>
+        <button class="btn block" id="newSigBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Create signature</button>
+      </section>
+      <section>
+        <h3>Add fields</h3>
+        <div class="field-grid">
+          <button class="field-btn" type="button" id="addTextBtn" title="Add text such as your name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></svg>Text</button>
+          <button class="field-btn" type="button" id="addDateBtn" title="Add today's date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Date</button>
+        </div>
+      </section>
+      <section class="help">
+        <b>Drag</b> a signature or field onto a page, or <b>click</b> it to add it to the page you're viewing. Select an item to move, resize, or delete it. Shortcuts: <kbd>Del</kbd> remove · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · arrow keys nudge.
+      </section>
+    </aside>
+
+    <section class="viewer" id="viewer">
+      <div class="viewbar">
+        <div class="vb-group">
+          <button class="icon-btn" id="prevBtn" type="button" title="Previous page" aria-label="Previous page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+          <input class="page-input" id="pageInput" inputmode="numeric" autocomplete="off" aria-label="Current page" value="1">
+          <span class="page-total" id="pageTotal">/ 1</span>
+          <button class="icon-btn" id="nextBtn" type="button" title="Next page" aria-label="Next page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
+        <div class="vb-group">
+          <button class="icon-btn" id="zoomOutBtn" type="button" title="Zoom out (Ctrl −)" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <button class="zoom-label" id="zoomLabel" type="button" title="Reset zoom to 100%">100%</button>
+          <button class="icon-btn" id="zoomInBtn" type="button" title="Zoom in (Ctrl +)" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button class="btn ghost sm" id="fitBtn" type="button" title="Fit page width"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg><span class="fit-lbl">Fit width</span></button>
+        </div>
+      </div>
+      <div class="scroller" id="scroller"><div class="pages" id="pages"></div></div>
+    </section>
+
+    <aside class="thumbs-panel" id="thumbsPanel" aria-label="Pages"><div class="thumbs" id="thumbs"></div></aside>
+  </main>
+
+  <nav class="mobilebar" aria-label="Add to document">
+    <button type="button" id="mSigBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-1 4.5-6 6.5-6S11 16 13 16s2.5-3 4-3 2 2 4 2"/><path d="M3 21h18"/></svg>Signature</button>
+    <button type="button" id="mTextBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></svg>Text</button>
+    <button type="button" id="mDateBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>Date</button>
+  </nav>
+</div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Your signatures" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <h3>Tap a signature to add it</h3>
+  <div class="sig-list" id="sigListSheet"></div>
+  <button class="btn primary block" id="sheetNewSigBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Create new signature</button>
+</div>
+<div class="drop-overlay" id="dropOverlay" hidden><div>Drop the PDF to open it</div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<input type="file" id="pdfInput" accept="application/pdf,.pdf" hidden>
+
+<!--@LIBS@-->
+<script>
+/*@APP@*/
+</script>
+</body>
+</html>
