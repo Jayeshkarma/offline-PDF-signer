@@ -74,4 +74,5 @@ const outArg = process.argv.indexOf('--out');
 const out = outArg > 0 ? process.argv[outArg + 1] : path.join(root, 'dist/pdf-signer.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, html);
+if (outArg < 0) fs.writeFileSync(path.join(path.dirname(out), "index.html"), html); // site root for static hosting (Netlify)
 console.log(`Built ${out} (${(Buffer.byteLength(html) / 1048576).toFixed(2)} MB) · pdf.js ${pdfjsVersion} · pdf-lib ${pdflibVersion} · ${entries.length} data files`);
